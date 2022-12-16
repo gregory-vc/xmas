@@ -12,7 +12,7 @@ nltk.download('omw-1.4')
 nltk.download('punkt')
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-
+import pandas as pd
 from tika import parser
 
 st.write("""
@@ -21,10 +21,15 @@ st.write("""
 
 tika.initVM()
 
+classes = pd.read_json('classes.json', orient='index')
+cl = classes[0].unique()
+
+lr = joblib.load("LR_trained_classifier.joblib")
+tf = joblib.load("tf.joblib")
+
 stop_words = set(stopwords.words('russian')) # множество стоп слов
 
 morph = pymorphy2.MorphAnalyzer() # для постановки слова в начальную форму
-
 
 def lemmatize_words(text):
     '''Функция для лемматизации отдельных слов.'''
@@ -52,18 +57,29 @@ if uploaded_file is not None:
     data = parser.from_buffer(bytes_data)
     
 
-    lr = joblib.load("LR_trained_classifier.joblib")
-    tf = joblib.load("tf.joblib")
+
 
     sample_text = text_preprocessing(data)
-    # Process the text in the same way you did when you trained it!
-    sample_vec = tf.transform(sample_text)
+    # print()
+
+    # n = pd.DataFrame(
+    #     {
+    #         "1": sample_text['content_punct_lemm'],
+    #     }
+    # )
+
+    sample_vec = tf.transform([sample_text['content_punct_lemm']])
+
+    
+    print(123, sample_vec)
 
     pr = lr.predict(sample_vec)
     pr1 = lr.predict_proba(sample_vec)
 
+    t = cl[pr[0]]
 
-    predict = st.text_area("Predict", pr, key="predict")
+
+    predict = st.text_area("Predict", t, key="predict")
     st.json(data)
 
 upload_state = st.text_area("Upload State", "", key="upload_state")
